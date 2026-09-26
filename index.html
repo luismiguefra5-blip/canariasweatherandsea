@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canarias Weather & Sea</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+<header>
+  <div class="nav">
+    <div class="brand">CANARIAS <span>WEATHER & SEA</span></div>
+    <select id="spotSelect" aria-label="Seleccionar zona"></select>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+ <div><div class="kicker">CLIMA · OCÉANO · ACTIVIDADES</div><h1 id="place">Canarias</h1>
+ <p>Condiciones meteorológicas y marítimas actualizadas automáticamente.</p></div>
+ <div class="updated"><span class="live"></span><span id="updated">Cargando datos…</span></div>
+</section>
+
+<div id="error" class="error hidden"></div>
+
+<section class="layout">
+ <div class="card weather">
+  <div class="cardTitle"><span>TIEMPO AHORA</span><small id="weatherTime"></small></div>
+  <div class="weatherMain"><div id="weatherIcon" class="bigIcon">☀️</div>
+   <div><div><span id="temp" class="temp">--</span><span class="unit">°C</span></div>
+   <b id="weatherText">Cargando…</b><div class="muted">Sensación <span id="feels">--</span>°C</div></div>
+  </div>
+  <div class="metrics">
+   <div><span>💨 Viento</span><b id="wind">--</b></div>
+   <div><span>🧭 Dirección</span><b id="windDir">--</b></div>
+   <div><span>💧 Humedad</span><b id="humidity">--</b></div>
+   <div><span>🌡 Presión</span><b id="pressure">--</b></div>
+  </div>
+ </div>
+
+ <div class="card seaCard">
+  <div class="cardTitle"><span>CONDICIONES DEL MAR</span><small id="seaTime"></small></div>
+  <div class="seaHero"><span>🌊</span><div><div class="seaValue"><span id="wave">--</span> m</div><div class="muted">Altura de ola</div></div></div>
+  <div class="metrics seaMetrics">
+   <div><span>⏱ Periodo</span><b><span id="period">--</span> s</b></div>
+   <div><span>🧭 Oleaje</span><b id="waveDir">--</b></div>
+   <div><span>🌊 Mar de fondo</span><b><span id="swell">--</span> m</b></div>
+   <div><span>🌡 Agua</span><b><span id="sst">--</span> °C</b></div>
+  </div>
+ </div>
+</section>
+
+<section class="card section">
+ <div class="cardTitle"><span>PRÓXIMAS HORAS</span><small>Previsión horaria</small></div>
+ <div id="hourly" class="hourly"></div>
+</section>
+
+<section class="card section">
+ <div class="cardTitle"><span>ACTIVIDADES</span><small>Orientación basada en los datos disponibles</small></div>
+ <div class="activities">
+  <div class="activity"><div class="actIcon">🏄</div><b>Surf</b><strong id="surfScore">--</strong><span id="surfText">Calculando…</span></div>
+  <div class="activity"><div class="actIcon">🪁</div><b>Kitesurf</b><strong id="kiteScore">--</strong><span id="kiteText">Calculando…</span></div>
+  <div class="activity"><div class="actIcon">🤿</div><b>Buceo</b><strong id="diveScore">--</strong><span id="diveText">Calculando…</span></div>
+  <div class="activity"><div class="actIcon">🏊</div><b>Baño</b><strong id="swimScore">--</strong><span id="swimText">Calculando…</span></div>
+ </div>
+ <p class="notice">Estos índices son orientativos y no sustituyen avisos oficiales, vigilancia de playas ni evaluación local. El oleaje modelado en mar abierto puede diferir del que rompe en cada playa.</p>
+</section>
+
+<section class="card section">
+ <div class="cardTitle"><span>MAPA DE CANARIAS</span><small>Selecciona un punto</small></div>
+ <div id="map"></div>
+</section>
+
+<section class="sources">
+ <b>Fuentes de esta V2</b>
+ <p>Datos meteorológicos y marítimos: Open-Meteo. El proyecto queda preparado para añadir fuentes oficiales españolas mediante backend. Mapa: OpenStreetMap.</p>
+</section>
+
+<div class="card section"><h2>🗺️ Mapa interactivo de spots</h2>
+<div class="searchbar"><input id="spotSearch" placeholder="Buscar playa o spot…"><select id="activityFilter" class="filter"><option value="all">Todas las actividades</option><option value="surf">Surf</option><option value="kite">Kitesurf</option><option value="wind">Windsurf</option><option value="dive">Buceo</option><option value="swim">Baño</option></select></div>
+<div class="mapreal"><div class="ocean"></div><div class="leafletnote">Mapa V6 · coordenadas de spots</div><div id="realpins"></div></div>
+<div class="urlbox" id="spotUrl">Ruta preparada: /spot/...</div></div>
+
+<div class="card section backend"><h2>⚙️ Arquitectura V8 · Backend propio</h2>
+<div class="dataflow">
+<div class="flow"><b>1 · Fuentes</b><small>AEMET · Puertos del Estado · modelos oceanográficos</small></div>
+<div class="flow"><b>2 · Backend</b><small>Normaliza datos y protege claves/API</small></div>
+<div class="flow"><b>3 · Base de datos</b><small>Spots, playas, coordenadas y metadatos</small></div>
+<div class="flow"><b>4 · Web</b><small>Mapa, fichas, previsiones y SEO</small></div>
+</div>
+</div>
+<div class="card section"><h2>🛠️ Panel de administración — prototipo</h2>
+<div class="admin">
+<div><div class="formrow"><label>Nombre del spot</label><input value="El Médano"></div><div class="formrow"><label>Isla</label><select><option>Tenerife</option><option>Gran Canaria</option><option>Fuerteventura</option><option>Lanzarote</option></select></div><div class="formrow"><label>Actividad principal</label><select><option>Surf</option><option>Kitesurf</option><option>Windsurf</option><option>Buceo</option><option>Baño</option></select></div></div>
+<div><div class="formrow"><label>Latitud</label><input value="28.0445"></div><div class="formrow"><label>Longitud</label><input value="-16.5363"></div><div class="formrow"><label>Estado</label><span class="badge">PUBLICADO · DEMO</span></div></div>
+</div>
+<p class="muted">En producción este panel estará protegido por usuario/contraseña y permitirá añadir o editar spots sin modificar el código.</p></div>
+<div class="card section"><h2>📚 Fuentes y metodología</h2><div class="legend"><span>🌤️ Meteorología: modelo/API</span><span>🌊 Mar: modelo oceanográfico</span><span>📡 Observación: estación/boya cuando exista</span><span>⚠️ Aviso: fuente oficial</span></div><p class="muted">La versión de producción mostrará junto a cada dato su fuente, hora de actualización y tipo de información. AEMET dispone de predicción horaria municipal y específica para playas; Puertos del Estado ofrece predicción y datos en tiempo real de oleaje, nivel del mar, corrientes y temperatura.</p></div>
+</main>
+<footer>CANARIAS WEATHER & SEA · V2 <span>Proyecto independiente</span></footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body></html>

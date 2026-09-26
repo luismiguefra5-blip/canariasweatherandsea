@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Canarias Weather & Sea: previsión horaria, oleaje, viento y condiciones para actividades náuticas.">
+<title>Canarias Weather & Sea</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#f3f8fa;color:#102a38}
+header{background:linear-gradient(135deg,#06263b,#087d83);color:white;padding:28px 5%}
+main{max-width:1240px;margin:auto;padding:22px 5%}.brand{font-size:26px;font-weight:850}.brand span{color:#72e4d7}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}select,input{padding:11px;border:1px solid #cbdce2;border-radius:10px;background:white}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:#fff;border:1px solid #d9e7ec;border-radius:16px;padding:18px;box-shadow:0 8px 25px #0b506015}.wide{grid-column:span 2}
+.pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#e4f6f4;color:#086c67;font-size:12px;margin:2px}.muted{color:#6c828c;font-size:13px}
+.score{font-size:25px;font-weight:800}.activities{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.activity{padding:9px;border-radius:10px;background:#edf5f7;text-align:center;font-size:12px}
+.hourly{width:100%;border-collapse:collapse;font-size:12px}.hourly td,.hourly th{padding:8px;border-bottom:1px solid #e5eef1;text-align:left}.source{font-size:11px;color:#6c828c;margin-top:10px}.warn{background:#fff4d6;border:1px solid #e6c873;border-radius:12px;padding:12px;margin-bottom:15px}
+a{color:#087d83;text-decoration:none;font-weight:700}@media(max-width:850px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style></head>
+<body><header><div class="brand">Canarias <span>Weather & Sea</span></div><div>Tiempo · Mar · Actividades</div></header>
+<main><div class="controls"><select id="island"><option value="">Todas las islas</option><option>Tenerife</option><option>Gran Canaria</option><option>Fuerteventura</option><option>Lanzarote</option><option>La Palma</option><option>La Gomera</option><option>El Hierro</option><option>La Graciosa</option></select><input id="q" placeholder="Buscar playa o spot"><select id="act"><option value="">Todas</option><option>surf</option><option>kitesurf</option><option>windsurf</option><option>diving</option><option>swimming</option><option>fishing</option></select></div>
+<div id="warnings"></div><div id="spots" class="grid"></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+const U=window.SUPABASE_URL||"",K=window.SUPABASE_PUBLISHABLE_KEY||"";let db,spots=[];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function acts(x){return Array.isArray(x)?x:(x||"").split(",").filter(Boolean)}
+async function init(){if(!U||!K){spotsEl().innerHTML="<article class=card>Configura tu proyecto Supabase.</article>";return}
+db=supabase.createClient(U,K);let [a,b]=await Promise.all([db.from("spots").select("*").eq("published",true).order("featured",{ascending:false}).order("name"),db.from("warnings").select("*").order("valid_from")]);spots=a.data||[];let ws=(b.data||[]).filter(x=>!x.valid_to||new Date(x.valid_to)>=new Date());$("warnings").innerHTML=ws.length?'<div class=warn><b>Avisos</b><br>'+ws.slice(0,5).map(x=>esc(x.title)).join("<br>")+"</div>":"";render()}
+const $=id=>document.getElementById(id),spotsEl=()=>$("spots");
+async function render(){let island=$("island").value.toLowerCase(),q=$("q").value.toLowerCase(),act=$("act").value.toLowerCase();let list=spots.filter(s=>(!island||String(s.island).toLowerCase()==island)&&(!q||`${s.name} ${s.island}`.toLowerCase().includes(q))&&(!act||acts(s.activities).map(x=>x.toLowerCase()).includes(act)));let html=[];for(const s of list){let r=await db.from("activity_scores").select("activity,score,label,forecast_time").eq("spot_id",s.id).order("forecast_time").limit(12);let scores={};(r.data||[]).forEach(x=>{if(!scores[x.activity])scores[x.activity]=x});html.push(`<article class="card"><span class=pill>${esc(s.island)}</span>${s.featured?"<span class=pill>Destacado</span>":""}<h2>${esc(s.name)}</h2><p class=muted>${esc(s.short_description||s.description||"Condiciones de tiempo y mar.")}</p><div class=activities>${Object.entries(scores).slice(0,6).map(([a,x])=>`<div class=activity><b>${esc(a)}</b><br><span class=score>${x.score}</span><br>${esc(x.label)}</div>`).join("")||"<div class=activity>Datos de actividad pendientes</div>"}</div><p><a href="/spot/${encodeURIComponent(s.slug||"")}">Ver ficha completa →</a></p><div class=source>Índices orientativos basados en previsión; no sustituyen avisos oficiales ni valoración local.</div></article>`)}spotsEl().innerHTML=html.join("")||"<article class=card>No hay resultados.</article>"}
+["island","q","act"].forEach(x=>$(x).addEventListener("input",render));init();
+</script></body></html>

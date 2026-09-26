@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#062b40">
+<meta name="description" content="Canarias Weather & Sea — tiempo, viento, oleaje, mareas y condiciones para surf, kitesurf, windsurf, buceo, baño y pesca en Canarias.">
+<title>Canarias Weather & Sea | Tiempo y estado del mar en Canarias</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--navy:#06283d;--teal:#087f82;--aqua:#67ded1;--bg:#f3f8fa;--card:#fff;--text:#102b38;--muted:#6b818b;--line:#dce8ed}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+header{color:#fff;background:linear-gradient(135deg,#041e31 0%,#075d72 60%,#078983 100%);padding:25px 5% 38px}
+.container{max-width:1320px;margin:auto}.nav{display:flex;justify-content:space-between;align-items:center;gap:20px}.logo{font-size:27px;font-weight:850}.logo span{color:var(--aqua)}
+.hero{max-width:900px;margin:55px auto 25px}.hero h1{font-size:clamp(32px,5vw,60px);line-height:1.02;margin:0 0 14px}.hero p{font-size:18px;max-width:720px;color:#d4eef0}
+.searchbar{display:flex;gap:9px;max-width:900px}.searchbar input{flex:1}
+input,select{padding:12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--text);font:inherit}
+main{padding:22px 5%}.controls{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:17px}.panel,.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 28px #164e6310}
+.panel{padding:18px}.map{height:480px;border-radius:13px;overflow:hidden}.cards{display:grid;gap:12px;max-height:480px;overflow:auto}
+.card{padding:15px;box-shadow:none}.spothead{display:flex;justify-content:space-between;gap:10px}.pill{display:inline-block;padding:4px 8px;border-radius:30px;background:#e3f6f3;color:#076d69;font-size:11px;margin:2px}
+.muted{color:var(--muted);font-size:13px}.scoregrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.score{background:#edf5f7;padding:8px;border-radius:10px;text-align:center;font-size:11px}.score b{font-size:21px;display:block}
+.section{margin-top:18px}.detail{padding:21px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.metric{background:#f4f8fa;padding:12px;border-radius:11px}.metric b{display:block;font-size:22px}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px;border-bottom:1px solid #e7eef1;text-align:left}.chart{height:220px;display:flex;align-items:flex-end;gap:5px;padding:12px;background:#f7fafb;border-radius:12px}.bar{flex:1;background:linear-gradient(#0b8c89,#72ddd1);border-radius:5px 5px 0 0;min-height:4px;position:relative}.bar small{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--muted);font-size:9px}
+.newsletter{background:var(--navy);color:white;border-radius:18px;padding:25px;margin-top:18px}.newsletter form{display:flex;gap:8px}.newsletter input{flex:1}.btn{border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer}.btn.primary{background:var(--aqua);color:#06283d}
+.source{font-size:11px;color:#71858d;margin-top:10px}.warning{background:#fff4d5;border:1px solid #e4c66f;border-radius:12px;padding:12px;margin-bottom:15px}
+footer{padding:35px 5%;color:#72858c;text-align:center;font-size:12px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}.hero{margin-top:35px}.map{height:380px}}
+@media(max-width:600px){.searchbar,.newsletter form{flex-direction:column}.scoregrid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header><div class="container">
+<div class="nav"><div class="logo">Canarias <span>Weather & Sea</span></div><div>Canarias · Mar · Tiempo</div></div>
+<div class="hero"><h1>El estado del mar de Canarias, en un solo lugar.</h1><p>Consulta viento, oleaje, temperatura, mareas y condiciones orientativas para las principales actividades náuticas.</p>
+<div class="searchbar"><input id="search" placeholder="Busca una playa, spot o isla…"><button class="btn primary" onclick="doSearch()">Buscar</button></div></div>
+</div></header>
+<main class="container">
+<div class="controls"><select id="island"><option value="">Todas las islas</option><option>Tenerife</option><option>Gran Canaria</option><option>Fuerteventura</option><option>Lanzarote</option><option>La Palma</option><option>La Gomera</option><option>El Hierro</option><option>La Graciosa</option></select>
+<select id="activity"><option value="">Todas las actividades</option><option>surf</option><option>kitesurf</option><option>windsurf</option><option>diving</option><option>swimming</option><option>fishing</option></select></div>
+<div id="warnings"></div>
+<div class="layout"><section class="panel"><h2>Mapa de Canarias</h2><div id="map" class="map"></div><div class="source">Mapa: OpenStreetMap/Leaflet. Las coordenadas corresponden a los puntos publicados.</div></section>
+<section class="panel"><h2>Spots destacados</h2><div id="cards" class="cards"></div></section></div>
+<section id="detail" class="panel detail section"><h2>Selecciona un spot</h2><p class="muted">Aquí aparecerán las condiciones y previsiones.</p></section>
+<section class="newsletter"><h2>Recibe cambios importantes</h2><p>Preparado para avisos y resúmenes de condiciones. No se enviará nada hasta configurar el sistema de correo.</p><form id="newsletter"><input id="email" type="email" required placeholder="tu@email.com"><button class="btn primary">Suscribirme</button></form><div id="substatus"></div></section>
+</main>
+<footer>Canarias Weather & Sea · Plataforma independiente de información meteorológica y marina. Las previsiones son orientativas y no sustituyen avisos oficiales ni criterio local.</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/supabase@2"></script>
+<script>
+const U=window.SUPABASE_URL||"",K=window.SUPABASE_PUBLISHABLE_KEY||"";let db,map,markers=[],spots=[];
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),acts=x=>Array.isArray(x)?x:(x||"").split(",").filter(Boolean);
+function initMap(){map=L.map("map").setView([28.29,-16.63],7.3);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap contributors"}).addTo(map)}
+async function boot(){if(!U||!K){$("cards").innerHTML='<div class=card>Conecta este frontend a tu proyecto Supabase para mostrar datos reales.</div>';return}db=supabase.createClient(U,K);initMap();
+let [s,w]=await Promise.all([db.from("spots").select("*").eq("published",true).order("featured",{ascending:false}).order("name"),db.from("warnings").select("*").order("valid_from")]);spots=s.data||[];let ws=(w.data||[]).filter(x=>!x.valid_to||new Date(x.valid_to)>=new Date());$("warnings").innerHTML=ws.length?'<div class=warning><b>Avisos</b><br>'+ws.slice(0,5).map(x=>esc(x.title)+" · "+esc(x.island||"Canarias")).join("<br>")+"</div>":"";render()}
+function filtered(){let i=$("island").value.toLowerCase(),a=$("activity").value.toLowerCase(),q=$("search").value.toLowerCase();return spots.filter(s=>(!i||String(s.island).toLowerCase()==i)&&(!a||acts(s.activities).map(x=>x.toLowerCase()).includes(a))&&(!q||`${s.name} ${s.island} ${s.nearby_area||""}`.toLowerCase().includes(q)))}
+async function render(){markers.forEach(m=>map.removeLayer(m));markers=[];let list=filtered();$("cards").innerHTML="";
+for(const s of list){if(s.latitude&&s.longitude){let m=L.marker([s.latitude,s.longitude]).addTo(map).bindPopup(`<b>${esc(s.name)}</b><br>${esc(s.island)}`);m.on("click",()=>show(s));markers.push(m)}
+let a=await db.from("activity_scores").select("activity,score,label").eq("spot_id",s.id).order("forecast_time",{ascending:false}).limit(6);let scores={};(a.data||[]).forEach(x=>scores[x.activity]??=x);
+$("cards").insertAdjacentHTML("beforeend",`<article class=card onclick='show(${JSON.stringify(s).replace(/'/g,"&#39;")})'><div class=spothead><div><span class=pill>${esc(s.island)}</span>${s.featured?'<span class=pill>Destacado</span>':""}<h3>${esc(s.name)}</h3></div></div><p class=muted>${esc(s.short_description||s.description||"Condiciones de tiempo y mar.")}</p><div class=scoregrid>${Object.entries(scores).slice(0,6).map(([k,x])=>`<div class=score>${esc(k)}<b>${x.score}</b>${esc(x.label)}</div>`).join("")||"<div class=score>Índices<br><b>—</b>pendientes</div>"}</div></article>`)}
+if(list.length)map.fitBounds(L.latLngBounds(list.filter(s=>s.latitude&&s.longitude).map(s=>[s.latitude,s.longitude])),{padding:[20,20],maxZoom:10})}
+async function show(s){$("detail").innerHTML=`<h2>${esc(s.name)} · ${esc(s.island)}</h2><p>${esc(s.description||"")}</p><p class=muted>Cargando previsión…</p>`;
+let [f,a,t,d]=await Promise.all([db.from("hourly_forecast").select("*").eq("spot_id",s.id).order("forecast_time").limit(24),db.from("activity_scores").select("*").eq("spot_id",s.id).order("forecast_time").limit(30),db.from("tides").select("*").eq("spot_id",s.id).gte("event_time",new Date().toISOString()).order("event_time").limit(8),db.from("daily_spot_summary").select("*").eq("spot_id",s.id).order("summary_date",{ascending:false}).limit(7)]);
+let by={};(a.data||[]).forEach(x=>{if(!by[x.activity])by[x.activity]=x});let first=(f.data||[])[0]||{};
+let max=Math.max(...(f.data||[]).map(x=>Number(x.wave_height_m)||0),1),bars=(f.data||[]).slice(0,12).map(x=>`<div class=bar style="height:${Math.max(4,((Number(x.wave_height_m)||0)/max)*170)}px"><small>${new Date(x.forecast_time).getHours()}h</small></div>`).join("");
+let rows=(f.data||[]).slice(0,12).map(x=>`<tr><td>${new Date(x.forecast_time).toLocaleString("es-ES",{hour:"2-digit",minute:"2-digit"})}</td><td>${x.temperature_c??"—"}°</td><td>${x.wind_kmh??"—"} km/h</td><td>${x.wave_height_m??"—"} m</td><td>${x.wave_period_s??"—"} s</td><td>${x.water_temp_c??"—"}°</td></tr>`).join("");
+$("detail").innerHTML=`<h2>${esc(s.name)} · ${esc(s.island)}</h2><p>${esc(s.description||"")}</p><div class=metrics><div class=metric>Temperatura<b>${first.temperature_c??"—"}°C</b></div><div class=metric>Viento<b>${first.wind_kmh??"—"} km/h</b></div><div class=metric>Ola<b>${first.wave_height_m??"—"} m</b></div><div class=metric>Agua<b>${first.water_temp_c??"—"}°C</b></div></div><div class=section><h3>Condiciones por actividad</h3><div class=scoregrid>${Object.entries(by).map(([k,x])=>`<div class=score>${esc(k)}<b>${x.score}</b>${esc(x.label)}</div>`).join("")||"Sin índices disponibles."}</div></div><div class=section><h3>Evolución del oleaje</h3><div class=chart>${bars||"<span class=muted>Sin previsión</span>"}</div></div><div class=section><h3>Previsión horaria</h3><table><thead><tr><th>Hora</th><th>Temp.</th><th>Viento</th><th>Ola</th><th>Periodo</th><th>Agua</th></tr></thead><tbody>${rows||"<tr><td colspan=6>Sin datos.</td></tr>"}</tbody></table></div><div class=section><h3>Próximas mareas</h3>${(t.data||[]).map(x=>`<p>${new Date(x.event_time).toLocaleString("es-ES")} · ${esc(x.event_type)} · ${x.height_m??"—"} m</p>`).join("")||"<p class=muted>Sin datos de mareas.</p>"}</div><p class=source>Los índices son orientativos. El oleaje previsto en mar abierto puede diferir de las condiciones concretas de la playa. Consulta siempre los avisos oficiales.</p>`;
+db.from("analytics_events").insert({event_name:"spot_view",spot_id:s.id,path:location.pathname,metadata:{source:"final-ui"}}).then(()=>{})}
+function doSearch(){render()}["island","activity"].forEach(x=>$(x).addEventListener("change",render));$("search").addEventListener("input",render);
+$("newsletter").addEventListener("submit",async e=>{e.preventDefault();if(!db)return;let email=$("email").value.trim();let r=await db.from("subscribers").insert({email});$("substatus").textContent=r.error?(r.error.code==="23505"?"Este email ya está suscrito.":r.error.message):"Suscripción registrada.";if(!r.error)$("email").value=""});boot();
+</script>
+</body></html>

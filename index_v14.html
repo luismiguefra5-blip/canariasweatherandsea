@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Previsión del tiempo y estado del mar en playas y spots de Canarias.">
+<title>Canarias Weather & Sea</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#f3f8fa;color:#102b38}
+header{background:linear-gradient(135deg,#06263b,#087d83);color:#fff;padding:25px 5%}
+.container{max-width:1280px;margin:auto;padding:20px 5%}.brand{font-size:27px;font-weight:850}.brand span{color:#78e7da}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}select,input{padding:11px;border:1px solid #cadbe2;border-radius:10px;background:#fff}
+.layout{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}.panel{background:#fff;border:1px solid #dce8ec;border-radius:17px;padding:17px;box-shadow:0 8px 25px #124d6310}
+#map{height:580px;border-radius:13px}.spots{display:grid;grid-template-columns:1fr;gap:12px;max-height:580px;overflow:auto}
+.spot{border:1px solid #e0eaed;border-radius:14px;padding:14px}.spot h3{margin:4px 0}.pill{display:inline-block;background:#e4f6f4;color:#086c67;border-radius:20px;padding:4px 8px;font-size:11px;margin:2px}.muted{font-size:13px;color:#69808a}
+.activitygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.activity{background:#edf5f7;border-radius:9px;padding:7px;text-align:center;font-size:11px}.score{font-size:20px;font-weight:800}
+.hourly{width:100%;border-collapse:collapse;font-size:12px}.hourly td,.hourly th{padding:7px;border-bottom:1px solid #e6eef1;text-align:left}.wide{margin-top:16px}.warn{background:#fff4d6;border:1px solid #e7c972;border-radius:12px;padding:11px;margin-bottom:15px}
+a{color:#087d83;text-decoration:none;font-weight:700}.source{font-size:11px;color:#70848c;margin-top:8px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}#map{height:420px}.spots{max-height:none}}
+</style>
+</head>
+<body>
+<header><div class="container" style="padding-top:0;padding-bottom:0"><div class="brand">Canarias <span>Weather & Sea</span></div><div>Tiempo · Mar · Surf · Viento · Buceo · Baño · Pesca</div></div></header>
+<main class="container">
+<div class="controls"><select id="island"><option value="">Todas las islas</option><option>Tenerife</option><option>Gran Canaria</option><option>Fuerteventura</option><option>Lanzarote</option><option>La Palma</option><option>La Gomera</option><option>El Hierro</option><option>La Graciosa</option></select><input id="search" placeholder="Buscar playa o spot"><select id="activity"><option value="">Todas las actividades</option><option>surf</option><option>kitesurf</option><option>windsurf</option><option>diving</option><option>swimming</option><option>fishing</option></select></div>
+<div id="warnings"></div>
+<div class="layout"><section class="panel"><h2>Mapa de spots</h2><div id="map"></div><div class="source">Localización geográfica mediante coordenadas de los puntos publicados.</div></section><section class="panel"><h2>Puntos de Canarias</h2><div id="spots" class="spots"></div></section></div>
+<section id="detail" class="panel wide"><h2>Selecciona un punto</h2><p class="muted">Pulsa un marcador o una tarjeta para consultar su previsión.</p></section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const U=window.SUPABASE_URL||"",K=window.SUPABASE_PUBLISHABLE_KEY||"";let db,map,markers=[],spots=[],scores=[],forecasts=[];
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function acts(x){return Array.isArray(x)?x:(x||"").split(",").filter(Boolean)}
+function initMap(){map=L.map("map").setView([28.29,-16.63],7.4);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap contributors"}).addTo(map)}
+function clearMarkers(){markers.forEach(x=>map.removeLayer(x));markers=[]}
+async function start(){
+ if(!U||!K){$("spots").innerHTML="<div class=spot>Configura tu proyecto Supabase.</div>";return}
+ db=supabase.createClient(U,K);initMap();
+ let [s,w]=await Promise.all([db.from("spots").select("*").eq("published",true).order("featured",{ascending:false}).order("name"),db.from("warnings").select("*").order("valid_from")]);
+ spots=s.data||[];let ws=(w.data||[]).filter(x=>!x.valid_to||new Date(x.valid_to)>=new Date());$("warnings").innerHTML=ws.length?'<div class=warn><b>Avisos</b><br>'+ws.slice(0,6).map(x=>esc(x.title)+" · "+esc(x.island||"Canarias")).join("<br>")+"</div>":"";
+ render();
+}
+function filtered(){let i=$("island").value.toLowerCase(),q=$("search").value.toLowerCase(),a=$("activity").value.toLowerCase();return spots.filter(s=>(!i||String(s.island).toLowerCase()===i)&&(!q||`${s.name} ${s.island} ${s.nearby_area||""}`.toLowerCase().includes(q))&&(!a||acts(s.activities).map(x=>x.toLowerCase()).includes(a)))}
+async function render(){
+ let list=filtered();clearMarkers();$("spots").innerHTML="";
+ list.forEach(s=>{
+  if(s.latitude&&s.longitude){let m=L.marker([s.latitude,s.longitude]).addTo(map).bindPopup(`<b>${esc(s.name)}</b><br>${esc(s.island)}`);m.on("click",()=>showSpot(s));markers.push(m)}
+  $("spots").insertAdjacentHTML("beforeend",`<article class=spot onclick='showSpot(${JSON.stringify(s).replace(/'/g,"&#39;")})'><span class=pill>${esc(s.island)}</span>${s.featured?"<span class=pill>Destacado</span>":""}<h3>${esc(s.name)}</h3><p class=muted>${esc(s.short_description||s.description||"Condiciones de tiempo y mar.")}</p><a href="/spot/${encodeURIComponent(s.slug||"")}">Ficha completa →</a></article>`)
+ });
+ if(list.length){map.fitBounds(L.latLngBounds(list.filter(s=>s.latitude&&s.longitude).map(s=>[s.latitude,s.longitude])),{padding:[25,25],maxZoom:10})}
+}
+async function showSpot(s){
+ $("detail").innerHTML="<h2>"+esc(s.name)+"</h2><p class=muted>Cargando previsión…</p>";
+ let [f,a,m]=await Promise.all([db.from("hourly_forecast").select("*").eq("spot_id",s.id).order("forecast_time").limit(24),db.from("activity_scores").select("*").eq("spot_id",s.id).order("forecast_time").limit(24),db.from("marine_cache").select("*").eq("spot_id",s.id).maybeSingle()]);
+ let first=(f.data||[])[0], by={};(a.data||[]).forEach(x=>{if(!by[x.activity])by[x.activity]=x});
+ let rows=(f.data||[]).slice(0,12).map(x=>`<tr><td>${new Date(x.forecast_time).toLocaleString("es-ES",{hour:"2-digit",minute:"2-digit"})}</td><td>${x.temperature_c??"—"}°</td><td>${x.wind_kmh??"—"} km/h</td><td>${x.wave_height_m??"—"} m</td><td>${x.wave_period_s??"—"} s</td></tr>`).join("");
+ let ac=Object.entries(by).map(([k,x])=>`<div class=activity><b>${esc(k)}</b><br><span class=score>${x.score}</span><br>${esc(x.label)}</div>`).join("");
+ $("detail").innerHTML=`<h2>${esc(s.name)} · ${esc(s.island)}</h2><p>${esc(s.description||"")}</p><h3>Actividades</h3><div class=activitygrid>${ac||"<div class=activity>Sin índice todavía</div>"}</div><h3>Próximas horas</h3><table class=hourly><thead><tr><th>Hora</th><th>Temp.</th><th>Viento</th><th>Ola</th><th>Periodo</th></tr></thead><tbody>${rows||"<tr><td colspan=5>Sin previsión horaria disponible.</td></tr>"}</tbody></table><p class=source>Los índices son orientativos. Las condiciones reales en una playa pueden diferir de la predicción de mar abierto por fondo y configuración de costa.</p>`;
+ db.from("analytics_events").insert({event_name:"spot_view",spot_id:s.id,path:location.pathname,metadata:{source:"map"}}).then(()=>{});
+}
+["island","search","activity"].forEach(x=>$(x).addEventListener("input",render));start();
+</script></body></html>

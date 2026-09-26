@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Tiempo, viento, oleaje, mar y actividades náuticas en Canarias.">
+<title>Canarias Weather & Sea</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f8fa;color:#123;line-height:1.45}
+header{background:linear-gradient(135deg,#06253b,#087d83);color:white;padding:24px 5%}
+nav{display:flex;justify-content:space-between;align-items:center;gap:15px}.logo{font-size:25px;font-weight:800}.logo b{color:#7de6db}
+main{max-width:1200px;margin:auto;padding:22px 5%}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+select,input{padding:11px;border:1px solid #c8d7df;border-radius:10px;background:white}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:white;border:1px solid #dce8ed;border-radius:16px;padding:18px;box-shadow:0 5px 20px #164c6312}
+.big{grid-column:span 2}.metric{font-size:28px;font-weight:800}.muted{color:#637b86;font-size:13px}.pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#e4f6f4;color:#086c67;font-size:12px;margin:2px}
+.alert{background:#fff4d6;border:1px solid #e9ca71;padding:12px;border-radius:12px;margin-bottom:15px}.source{font-size:12px;color:#607781}
+.activities{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.activity{padding:10px;border-radius:10px;background:#edf5f7;text-align:center;font-size:13px}
+.ad{min-height:70px;border:1px dashed #a9bdc5;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#78909a;margin:15px 0}
+footer{padding:30px 5%;color:#71858d;font-size:12px;text-align:center}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.big{grid-column:auto}.activities{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header><nav><div class="logo">Canarias <b>Weather & Sea</b></div><div>Tiempo · Mar · Surf · Viento</div></nav></header>
+<main>
+<div class="toolbar">
+<select id="island"><option value="">Todas las islas</option><option>Tenerife</option><option>Gran Canaria</option><option>Fuerteventura</option><option>Lanzarote</option><option>La Palma</option><option>La Gomera</option><option>El Hierro</option><option>La Graciosa</option></select>
+<input id="search" placeholder="Buscar playa, spot o zona">
+<select id="activity"><option value="">Todas las actividades</option><option>surf</option><option>kitesurf</option><option>windsurf</option><option>diving</option><option>swimming</option><option>fishing</option></select>
+</div>
+<div id="warnings"></div>
+<div id="spots" class="grid"></div>
+</main>
+<footer>Los datos de predicción se identifican como previsiones/modelos. Las observaciones y avisos oficiales se muestran con su fuente y fecha de actualización.</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL=window.SUPABASE_URL||"", SUPABASE_KEY=window.SUPABASE_PUBLISHABLE_KEY||"";
+let db, all=[];
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function activityList(v){return Array.isArray(v)?v:(typeof v==="string"?v.split(",").map(x=>x.trim()).filter(Boolean):[])}
+async function start(){
+ if(!SUPABASE_URL||!SUPABASE_KEY){document.getElementById("spots").innerHTML='<div class="card big"><b>Configuración pendiente</b><p class="muted">Conecta este frontend con tu propio proyecto Supabase usando una clave pública. No pongas aquí ninguna secret/service-role key.</p></div>';return}
+ db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+ const [s,w]=await Promise.all([
+  db.from("spots").select("*").eq("published",true).order("featured",{ascending:false}).order("name"),
+  db.from("warnings").select("*").order("valid_from",{ascending:true})
+ ]);
+ all=s.data||[]; renderWarnings(w.data||[]); render();
+}
+function renderWarnings(ws){
+ const active=ws.filter(x=>!x.valid_to||new Date(x.valid_to)>=new Date());
+ document.getElementById("warnings").innerHTML=active.length?'<div class="alert"><b>Avisos oficiales</b><br>'+active.slice(0,5).map(x=>esc(x.title)+' · '+esc(x.island||"Canarias")).join("<br>")+'</div>':"";
+}
+async function render(){
+ const isl=document.getElementById("island").value.toLowerCase(), q=document.getElementById("search").value.toLowerCase(), a=document.getElementById("activity").value.toLowerCase();
+ const rows=all.filter(s=>(!isl||String(s.island).toLowerCase()===isl)&&(!q||`${s.name} ${s.island} ${s.description||""}`.toLowerCase().includes(q))&&(!a||activityList(s.activities).map(x=>x.toLowerCase()).includes(a)));
+ document.getElementById("spots").innerHTML=rows.map(s=>`<article class="card">
+ <span class="pill">${esc(s.island)}</span>${s.featured?'<span class="pill">Destacado</span>':""}
+ <h2>${esc(s.name)}</h2><p class="muted">${esc(s.short_description||s.description||"Condiciones de tiempo y mar.")}</p>
+ <div class="activities">${activityList(s.activities).slice(0,5).map(x=>`<div class="activity">${esc(x)}</div>`).join("")}</div>
+ <div class="ad">Espacio publicitario / patrocinio</div>
+ <div class="source">Datos meteorológicos y marinos: consultar fecha y fuente en la ficha.</div>
+ </article>`).join("")||'<div class="card big">No se encontraron puntos con esos filtros.</div>';
+}
+["island","search","activity"].forEach(id=>document.getElementById(id).addEventListener("input",render));
+start();
+</script>
+</body></html>

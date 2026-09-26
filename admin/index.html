@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canarias Weather & Sea · Administración</title>
+<style>
+:root{--bg:#07131f;--panel:#0d2030;--line:#234057;--text:#eef7fb;--muted:#9fb5c4;--accent:#52d6c8;--danger:#ff7b7b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#06111b,#0b1d2c);font-family:Inter,Arial,sans-serif;color:var(--text)}
+.wrap{max-width:1180px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.brand{font-size:24px;font-weight:800}.brand span{color:var(--accent)}
+.panel{background:rgba(13,32,48,.92);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 12px 40px #0004}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.full{grid-column:1/-1}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}input,textarea,select{width:100%;background:#081722;color:var(--text);border:1px solid #29475d;border-radius:10px;padding:11px}textarea{min-height:100px;resize:vertical}
+button{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;font-weight:700}.primary{background:var(--accent);color:#06201d}.ghost{background:#173247;color:var(--text)}.danger{background:#4b2026;color:#ffd6d6}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.status{color:var(--muted);font-size:13px}.hidden{display:none}.spot{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:12px;border-top:1px solid var(--line)}.pill{font-size:12px;padding:4px 8px;border-radius:99px;background:#173b4b;color:#bdeee9}
+h2{margin-top:0}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.wrap{padding:15px}.top{align-items:flex-start;gap:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Canarias <span>Weather & Sea</span> · Admin</div>
+    <button id="logout" class="ghost hidden">Cerrar sesión</button>
+  </div>
+
+  <section id="loginPanel" class="panel">
+    <h2>Acceso de administrador</h2>
+    <p class="status">Usa el usuario creado en tu propio proyecto Supabase. No se almacenan credenciales en este código.</p>
+    <div class="grid">
+      <div><label>Email</label><input id="email" type="email" autocomplete="username"></div>
+      <div><label>Contraseña</label><input id="password" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="primary" id="login">Entrar</button><span id="loginStatus" class="status"></span></div>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="panel">
+      <h2>Gestión de puntos</h2>
+      <div class="grid">
+        <div><label>Nombre</label><input id="name"></div>
+        <div><label>Slug SEO</label><input id="slug" placeholder="playa-las-canteras"></div>
+        <div><label>Isla</label><select id="island">
+          <option>Tenerife</option><option>Gran Canaria</option><option>Fuerteventura</option><option>Lanzarote</option>
+          <option>La Palma</option><option>La Gomera</option><option>El Hierro</option><option>La Graciosa</option>
+        </select></div>
+        <div><label>Actividades</label><input id="activities" placeholder="surf,kitesurf,windsurf,swimming"></div>
+        <div><label>Latitud</label><input id="lat" type="number" step="any"></div>
+        <div><label>Longitud</label><input id="lon" type="number" step="any"></div>
+        <div><label>Título SEO</label><input id="seo_title"></div>
+        <div><label>Descripción SEO</label><input id="seo_description"></div>
+        <div class="full"><label>Descripción</label><textarea id="description"></textarea></div>
+        <div><label>Imagen principal</label><input id="image" type="file" accept="image/*"></div>
+        <div class="row" style="align-self:end">
+          <label><input id="published" type="checkbox" checked> Publicado</label>
+          <label><input id="featured" type="checkbox"> Destacado</label>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" id="save">Guardar punto</button>
+        <button class="ghost" id="clear">Limpiar</button>
+        <span id="saveStatus" class="status"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Puntos existentes</h2>
+      <div id="spots"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = window.SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "";
+let client, currentId = null, spots = [];
+
+const $ = id => document.getElementById(id);
+function cfg(){
+  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    $("loginStatus").textContent = "Configura SUPABASE_URL y SUPABASE_ANON_KEY en este archivo antes de usar el panel.";
+    return false;
+  }
+  client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return true;
+}
+function val(id){return $(id).value.trim()}
+function resetForm(){currentId=null;["name","slug","activities","lat","lon","seo_title","seo_description","description"].forEach(x=>$(x).value="");$("published").checked=true;$("featured").checked=false;$("image").value=""}
+function fill(s){
+  currentId=s.id;$("name").value=s.name||"";$("slug").value=s.slug||"";$("island").value=s.island||"Tenerife";
+  $("activities").value=Array.isArray(s.activities)?s.activities.join(","):s.activities||"";$("lat").value=s.latitude??s.lat??"";
+  $("lon").value=s.longitude??s.lon??"";$("seo_title").value=s.seo_title||"";$("seo_description").value=s.seo_description||"";
+  $("description").value=s.description||"";$("published").checked=s.published!==false;$("featured").checked=!!s.featured;
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+async function load(){
+  const {data,error}=await client.from("spots").select("*").order("island").order("name");
+  if(error){$("saveStatus").textContent=error.message;return}
+  spots=data||[];$("spots").innerHTML=spots.map(s=>`
+    <div class="spot"><div><strong>${escapeHtml(s.name||"Sin nombre")}</strong> <span class="pill">${escapeHtml(s.island||"")}</span>
+    <div class="status">${s.published===false?"No publicado":"Publicado"} · ${escapeHtml(s.slug||"sin-slug")}</div></div>
+    <div class="row"><button class="ghost" onclick='fill(${JSON.stringify(s).replace(/'/g,"&#39;")})'>Editar</button>
+    <button class="danger" onclick="removeSpot('${s.id}')">Eliminar</button></div></div>`).join("") || '<div class="status">No hay puntos.</div>';
+}
+async function save(){
+  $("saveStatus").textContent="Guardando…";
+  let imagePath=null;
+  const file=$("image").files[0];
+  const payload={name:val("name"),slug:val("slug"),island:$("island").value,activities:val("activities").split(",").map(x=>x.trim()).filter(Boolean),
+    latitude:Number(val("lat")),longitude:Number(val("lon")),seo_title:val("seo_title"),seo_description:val("seo_description"),
+    description:val("description"),published:$("published").checked,featured:$("featured").checked,updated_by:(await client.auth.getUser()).data.user?.id||null};
+  if(file){
+    const safe=file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,"-");
+    imagePath=`${payload.slug}-${Date.now()}-${safe}`;
+    const up=await client.storage.from("spot-images").upload(imagePath,file,{upsert:false});
+    if(up.error){$("saveStatus").textContent=up.error.message;return}
+    payload.hero_image_path=imagePath;
+  }
+  const result=currentId ? await client.from("spots").update(payload).eq("id",currentId).select().single()
+                           : await client.from("spots").insert(payload).select().single();
+  if(result.error){$("saveStatus").textContent=result.error.message;return}
+  await client.rpc("log_admin_action",{p_action:currentId?"update":"create",p_entity:"spot",p_entity_id:String(result.data.id),p_details:{name:payload.name,slug:payload.slug}});
+  $("saveStatus").textContent="Guardado correctamente.";resetForm();await load();
+}
+async function removeSpot(id){
+  if(!confirm("¿Eliminar este punto?")) return;
+  const r=await client.from("spots").delete().eq("id",id);
+  $("saveStatus").textContent=r.error?r.error.message:"Punto eliminado.";
+  if(!r.error) await load();
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+$("login").onclick=async()=>{if(!cfg())return;$("loginStatus").textContent="Entrando…";const r=await client.auth.signInWithPassword({email:val("email"),password:$("password").value});if(r.error){$("loginStatus").textContent=r.error.message;return}showApp()};
+$("logout").onclick=async()=>{await client.auth.signOut();location.reload()};
+$("save").onclick=save;$("clear").onclick=resetForm;
+async function showApp(){$("loginPanel").classList.add("hidden");$("app").classList.remove("hidden");$("logout").classList.remove("hidden");await load()}
+cfg();
+</script>
+</body>
+</html>
