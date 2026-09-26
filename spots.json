@@ -1,0 +1,175 @@
+[
+  {
+    "id": "tenerife-el-medano",
+    "name": "El Médano",
+    "island": "Tenerife",
+    "lat": 28.0445,
+    "lon": -16.5363,
+    "activities": [
+      "surf",
+      "kitesurf",
+      "windsurf",
+      "swim"
+    ],
+    "active": true
+  },
+  {
+    "id": "tenerife-las-americas",
+    "name": "Las Américas",
+    "island": "Tenerife",
+    "lat": 28.058,
+    "lon": -16.7337,
+    "activities": [
+      "surf",
+      "swim"
+    ],
+    "active": true
+  },
+  {
+    "id": "tenerife-puerto-de-la-cruz",
+    "name": "Puerto de la Cruz",
+    "island": "Tenerife",
+    "lat": 28.416,
+    "lon": -16.552,
+    "activities": [
+      "surf",
+      "swim"
+    ],
+    "active": true
+  },
+  {
+    "id": "gran-canaria-las-canteras",
+    "name": "Las Canteras",
+    "island": "Gran Canaria",
+    "lat": 28.14,
+    "lon": -15.438,
+    "activities": [
+      "surf",
+      "swim"
+    ],
+    "active": true
+  },
+  {
+    "id": "gran-canaria-maspalomas",
+    "name": "Maspalomas",
+    "island": "Gran Canaria",
+    "lat": 27.736,
+    "lon": -15.599,
+    "activities": [
+      "swim",
+      "dive"
+    ],
+    "active": true
+  },
+  {
+    "id": "fuerteventura-corralejo",
+    "name": "Corralejo",
+    "island": "Fuerteventura",
+    "lat": 28.735,
+    "lon": -13.868,
+    "activities": [
+      "surf",
+      "kitesurf",
+      "dive"
+    ],
+    "active": true
+  },
+  {
+    "id": "fuerteventura-el-cotillo",
+    "name": "El Cotillo",
+    "island": "Fuerteventura",
+    "lat": 28.682,
+    "lon": -14.01,
+    "activities": [
+      "surf",
+      "swim"
+    ],
+    "active": true
+  },
+  {
+    "id": "fuerteventura-sotavento",
+    "name": "Sotavento",
+    "island": "Fuerteventura",
+    "lat": 28.146,
+    "lon": -14.237,
+    "activities": [
+      "kitesurf",
+      "windsurf",
+      "swim"
+    ],
+    "active": true
+  },
+  {
+    "id": "lanzarote-famara",
+    "name": "Famara",
+    "island": "Lanzarote",
+    "lat": 29.119,
+    "lon": -13.565,
+    "activities": [
+      "surf",
+      "kitesurf"
+    ],
+    "active": true
+  },
+  {
+    "id": "lanzarote-costa-teguise",
+    "name": "Costa Teguise",
+    "island": "Lanzarote",
+    "lat": 28.999,
+    "lon": -13.489,
+    "activities": [
+      "surf",
+      "windsurf",
+      "swim"
+    ],
+    "active": true
+  },
+  {
+    "id": "la-palma-puerto-naos",
+    "name": "Puerto Naos",
+    "island": "La Palma",
+    "lat": 28.586,
+    "lon": -17.91,
+    "activities": [
+      "swim",
+      "dive"
+    ],
+    "active": true
+  },
+  {
+    "id": "la-gomera-valle-gran-rey",
+    "name": "Valle Gran Rey",
+    "island": "La Gomera",
+    "lat": 28.091,
+    "lon": -17.334,
+    "activities": [
+      "swim",
+      "dive"
+    ],
+    "active": true
+  },
+  {
+    "id": "el-hierro-la-restinga",
+    "name": "La Restinga",
+    "island": "El Hierro",
+    "lat": 27.641,
+    "lon": -17.981,
+    "activities": [
+      "dive",
+      "swim"
+    ],
+    "active": true
+  },
+  {
+    "id": "la-graciosa-caleta-de-sebo",
+    "name": "Caleta de Sebo",
+    "island": "La Graciosa",
+    "lat": 29.231,
+    "lon": -13.503,
+    "activities": [
+      "surf",
+      "swim"
+    ],
+    "active": true
+  }
+]

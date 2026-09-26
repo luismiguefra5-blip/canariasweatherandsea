@@ -1,0 +1,18 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spot · Canarias Weather & Sea</title><style>body{font-family:Arial;margin:0;background:#f5f8fa;color:#123}.wrap{max-width:1100px;margin:auto;padding:25px}.hero{padding:30px;border-radius:18px;background:#07364b;color:white}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:18px}.card{background:white;border:1px solid #dce7eb;border-radius:14px;padding:18px}.muted{color:#678}.source{font-size:12px;color:#678}@media(max-width:800px){.grid{grid-template-columns:1fr}}</style></head>
+<body><div class="wrap"><div id="app">Cargando…</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+const URL=window.SUPABASE_URL||"",KEY=window.SUPABASE_PUBLISHABLE_KEY||"";const db=URL&&KEY?supabase.createClient(URL,KEY):null;
+const slug=decodeURIComponent(location.pathname.split("/").filter(Boolean).pop()||"");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function run(){if(!db){app.innerHTML="<div class=card>Configura tu proyecto Supabase.</div>";return}
+let {data:s,error}=await db.from("spots").select("*").eq("slug",slug).eq("published",true).maybeSingle();
+if(error||!s){app.innerHTML="<div class=card>Spot no encontrado.</div>";return}
+let [w,m,t]=await Promise.all([db.from("weather_cache").select("*").eq("spot_id",s.id).maybeSingle(),db.from("marine_cache").select("*").eq("spot_id",s.id).maybeSingle(),db.from("tides").select("*").eq("spot_id",s.id).gte("event_time",new Date().toISOString()).order("event_time").limit(8)]);
+const weather=w.data?.payload?.current||{},marine=m.data?.payload?.current||{};
+app.innerHTML=`<section class=hero><small>${esc(s.island)}</small><h1>${esc(s.name)}</h1><p>${esc(s.description||"Condiciones meteorológicas y marinas.")}</p></section>
+<div class=grid><div class=card><h3>Tiempo</h3><b>${weather.temperature_2m??"—"} °C</b><p>Viento ${weather.wind_speed_10m??"—"} km/h · ${weather.wind_direction_10m??"—"}°</p><div class=source>Actualizado: ${esc(w.data?.fetched_at||"—")}</div></div>
+<div class=card><h3>Mar</h3><b>${marine.wave_height??"—"} m</b><p>Oleaje · periodo ${marine.wave_period??"—"} s</p><div class=source>Actualizado: ${esc(m.data?.fetched_at||"—")}</div></div>
+<div class=card><h3>Mareas</h3>${(t.data||[]).map(x=>`<p>${new Date(x.event_time).toLocaleString("es-ES")} · ${esc(x.event_type)} · ${x.height_m??"—"} m</p>`).join("")||"<p>Sin datos disponibles.</p>"}</div></div>`;
+}run();
+</script></body></html>

@@ -1,0 +1,4 @@
+# Never commit the real file.
+AEMET_API_KEY=
+PUERTOS_ESTADO_API_KEY=
+# Supabase injects project URL and key material in hosted Edge Functions.
